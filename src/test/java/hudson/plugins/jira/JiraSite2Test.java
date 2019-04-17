@@ -275,4 +275,14 @@ public class JiraSite2Test {
         assertEquals(credentials.getUsername(), jiraSite.credentials.getUsername());
         assertEquals(credentials.getPassword(), jiraSite.credentials.getPassword());
     }
+    
+    @Test
+    @WithoutJenkins
+    public void checkProjectsListTimeout() {
+    	JiraSite jiraSite = new JiraSite(exampleOrg.toExternalForm());
+    	assertFalse(jiraSite.projectsListExpired());
+    	jiraSite.setProjectsListTimeout(0);
+    	assertTrue(jiraSite.projectsListExpired());
+    	assertNotNull(jiraSite.getProjectsListTimeout());
+    }
 }

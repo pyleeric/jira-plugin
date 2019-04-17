@@ -231,9 +231,12 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
      * List of project keys (i.e., "MNG" portion of "MNG-512"),
      * last time we checked. Copy on write semantics.
      */
-    // TODO: seems like this is never invalidated (never set to null)
-    // should we implement to invalidate this (say every hour)?
     private transient volatile Set<String> projects;
+
+    // The expiration timestamp for list of JIRA projects
+    private volatile Long projectsExpirationMS;
+    // How long the list of JIRA projects is valid - 1 hour default
+    private int projectsTimeoutSeconds = 60 * 60;
 
     private transient Cache<String, Optional<Issue>> issueCache = makeIssueCache();
 
@@ -811,16 +814,19 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
 
     /**
      * Gets the list of project IDs in this JIRA.
-     * This information could be bit old, or it can be null.
+     * If it is too old, or null, query JIRA for the list.
+     * Otherwise, return the existing list.
      */
     public Set<String> getProjectKeys() {
-        if (projects == null) {
+        if (projects == null || projectsListExpired()) {
             try {
                 if (projectUpdateLock.tryLock(3, TimeUnit.SECONDS)) {
                     try {
                         JiraSession session = getSession();
                         if (session != null) {
                             projects = Collections.unmodifiableSet(session.getProjectKeys());
+                            // Reset the expiration timestamp
+                            projectsExpirationMS = System.currentTimeMillis() + (projectsTimeoutSeconds * 1000);
                         }
                     } finally {
                         projectUpdateLock.unlock();
@@ -837,6 +843,35 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
         }
 
         return p;
+    }
+    
+    /**
+     * Determine whether the list of JIRA projects has expired
+     * A value of -1 means that the list never expires.
+     */
+    public boolean projectsListExpired() {
+    	if (projectsTimeoutSeconds == -1) {
+    		return true;
+    	} else {
+    		return (System.currentTimeMillis() < projectsExpirationMS)
+    	}
+    }
+
+    /**
+     * Set the length of time in seconds before expiration for the list of JIRA projects.
+     * A value of 0 means that the list will be re-generated on each request.
+     * A value of -1 means that the list never expires.
+     */
+    public void setProjectsListTimeout(int seconds) {
+    	if (seconds >= -1) {
+    		this.projectsTimeoutSeconds = seconds;
+    	} else {
+    		LOGGER.warning("Invalid JIRA project list timeout " + seconds.toString());
+    	}
+    }
+    
+    public int getProjectsListTimeout() {
+    	return projectsTimeoutSeconds;
     }
 
     /**
