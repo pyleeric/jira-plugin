@@ -45,7 +45,7 @@ public class DescriptorImpl2Test {
         FormValidation validation = descriptor.doValidate("http://localhost:8080", null, null,
                                                           null, false, null,
                                                           JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                                          r.createFreeStyleProject());
+                                                          JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
 
         verify(descriptor).getJiraSiteBuilder();
         verify(builder).build();
@@ -59,7 +59,7 @@ public class DescriptorImpl2Test {
         FormValidation validation = descriptor.doValidate("http://localhost:8080", null, null,
                                                           null, false, null,
                                                           JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                                          r.createFreeStyleProject());
+                                                          JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
 
         verify(descriptor).getJiraSiteBuilder();
         verify(builder).build();

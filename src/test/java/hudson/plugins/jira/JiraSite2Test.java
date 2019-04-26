@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -279,10 +281,12 @@ public class JiraSite2Test {
     @Test
     @WithoutJenkins
     public void checkProjectsListTimeout() {
-    	JiraSite jiraSite = new JiraSite(exampleOrg.toExternalForm());
-    	assertFalse(jiraSite.projectsListExpired());
-    	jiraSite.setProjectsListTimeout(0);
-    	assertTrue(jiraSite.projectsListExpired());
-    	assertNotNull(jiraSite.getProjectsListTimeout());
+        JiraSite jiraSite = new JiraSite(exampleOrg.toExternalForm());
+        Set<String> projects = jiraSite.getProjectKeys();
+        jiraSite.setProjectsListTimeout(-1);
+        assertFalse(jiraSite.isProjectsListExpired());
+        jiraSite.setProjectsListTimeout(0);
+        assertTrue(jiraSite.isProjectsListExpired());
+        assertNotNull(jiraSite.getProjectsListTimeout());
     }
 }

@@ -112,6 +112,11 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
     public static final int DEFAULT_THREAD_EXECUTOR_NUMBER = 10;
     
     /**
+     * Default time in minutes before re-generation of list of JIRA projects.
+     */
+    public static final int DEFAULT_PROJECTS_LIST_TIMEOUT = 60;
+    
+    /**
      * URL of JIRA for Jenkins access, like <tt>http://jira.codehaus.org/</tt>.
      * Mandatory. Normalized to end with '/'
      */
@@ -233,10 +238,15 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
      */
     private transient volatile Set<String> projects;
 
-    // The expiration timestamp for list of JIRA projects
-    private volatile Long projectsExpirationMS;
-    // How long the list of JIRA projects is valid - 1 hour default
-    private int projectsTimeoutSeconds = 60 * 60;
+    /* The expiration timestamp for the list of project keys */
+    private volatile Long projectsExpirationMS = null;
+    
+    /**
+     * Length of time in minutes before expiration for the list of project keys.
+     * A value of 0 means that the list will be re-generated on each request.
+     * A value of -1 means that the list never expires.
+     */
+    private int projectsListTimeout = DEFAULT_PROJECTS_LIST_TIMEOUT;
 
     private transient Cache<String, Optional<Issue>> issueCache = makeIssueCache();
 
@@ -479,6 +489,16 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
     public void setUpdateJiraIssueForAllStatus(boolean updateJiraIssueForAllStatus) {
         this.updateJiraIssueForAllStatus = updateJiraIssueForAllStatus;
     }
+
+    @DataBoundSetter
+    public void setProjectsListTimeout(int projectsListTimeout) {
+        this.projectsListTimeout = projectsListTimeout;
+    }
+    
+    public int getProjectsListTimeout() {
+    	return projectsListTimeout;
+    }
+
 
     @SuppressWarnings("unused")
     protected Object readResolve() {
@@ -818,7 +838,7 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
      * Otherwise, return the existing list.
      */
     public Set<String> getProjectKeys() {
-        if (projects == null || projectsListExpired()) {
+        if (projects == null || isProjectsListExpired()) {
             try {
                 if (projectUpdateLock.tryLock(3, TimeUnit.SECONDS)) {
                     try {
@@ -826,7 +846,7 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
                         if (session != null) {
                             projects = Collections.unmodifiableSet(session.getProjectKeys());
                             // Reset the expiration timestamp
-                            projectsExpirationMS = System.currentTimeMillis() + (projectsTimeoutSeconds * 1000);
+                            projectsExpirationMS = System.currentTimeMillis() + (projectsListTimeout * 60 * 1000);
                         }
                     } finally {
                         projectUpdateLock.unlock();
@@ -846,32 +866,18 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
     }
     
     /**
-     * Determine whether the list of JIRA projects has expired
+     * Determine whether the list of project keys has expired and should be re-generated
      * A value of -1 means that the list never expires.
+     * @return true or false for expired or not expired respectively
      */
-    public boolean projectsListExpired() {
-    	if (projectsTimeoutSeconds == -1) {
-    		return true;
-    	} else {
-    		return (System.currentTimeMillis() < projectsExpirationMS)
-    	}
-    }
-
-    /**
-     * Set the length of time in seconds before expiration for the list of JIRA projects.
-     * A value of 0 means that the list will be re-generated on each request.
-     * A value of -1 means that the list never expires.
-     */
-    public void setProjectsListTimeout(int seconds) {
-    	if (seconds >= -1) {
-    		this.projectsTimeoutSeconds = seconds;
-    	} else {
-    		LOGGER.warning("Invalid JIRA project list timeout " + seconds.toString());
-    	}
-    }
-    
-    public int getProjectsListTimeout() {
-    	return projectsTimeoutSeconds;
+    public boolean isProjectsListExpired() {
+    	if (projectsListTimeout == -1) {
+            return (false);
+        }
+        if (projectsExpirationMS == null||System.currentTimeMillis() >= projectsExpirationMS) {
+            return (true);
+        }
+        return (false);
     }
 
     /**
@@ -1166,6 +1172,7 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
                                          @QueryParameter int timeout,
                                          @QueryParameter int readTimeout,
                                          @QueryParameter int threadExecutorNumber,
+                                         @QueryParameter int projectsListTimeout,
                                          @AncestorInPath Item item) {
 
             if (item == null) {
@@ -1214,10 +1221,14 @@ public class JiraSite extends AbstractDescribableImpl<JiraSite> {
             if(readTimeout<0){
                 return FormValidation.error( Messages.JiraSite_readTimeoutMinimunValue( "1" ));
             }
+            if(projectsListTimeout<-1){
+                return FormValidation.error( Messages.JiraSite_projectsListTimeoutMinimumValue( "-1" ));
+            }
 
             site.setTimeout(timeout);
             site.setReadTimeout(readTimeout);
             site.setThreadExecutorNumber(threadExecutorNumber);
+            site.setProjectsListTimeout(projectsListTimeout);
             JiraSession session = null;
             try {
                 session = site.getSession();

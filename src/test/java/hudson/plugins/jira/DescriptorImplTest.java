@@ -43,25 +43,25 @@ public class DescriptorImplTest {
         FormValidation validation = descriptor.doValidate(null, null, null, null,
                                                           false, null,
                                                           JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                                          r.createFreeStyleProject());
+                                                          JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
         assertEquals(FormValidation.Kind.ERROR, validation.kind);
 
         validation = descriptor.doValidate("invalid", null, null, null,
                                            false, null,
                                            JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                           r.createFreeStyleProject());
+                                           JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
         assertEquals(FormValidation.Kind.ERROR, validation.kind);
 
         validation = descriptor.doValidate("http://valid/", null, null, null,
                                            false, "invalid",
                                            JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                           r.createFreeStyleProject());
+                                           JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
         assertEquals(FormValidation.Kind.ERROR, validation.kind);
 
         validation = descriptor.doValidate("http://valid/", null, null, null,
                                            false, " ",
                                            JiraSite.DEFAULT_TIMEOUT, JiraSite.DEFAULT_READ_TIMEOUT, JiraSite.DEFAULT_THREAD_EXECUTOR_NUMBER,
-                                           r.createFreeStyleProject());
+                                           JiraSite.DEFAULT_PROJECTS_LIST_TIMEOUT, r.createFreeStyleProject());
         assertEquals(FormValidation.Kind.ERROR, validation.kind);
     }
 

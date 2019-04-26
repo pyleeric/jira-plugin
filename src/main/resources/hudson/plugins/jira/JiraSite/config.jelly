@@ -48,9 +48,12 @@
   <f:entry title="${%JIRA comments timestamp format}" field="dateTimePattern">
     <f:textbox />
   </f:entry>
+  <f:entry title="${%JIRA projects list timeout}" field="projectsListTimeout">
+    <f:number default="60" />
+  </f:entry>
   <f:entry>
     <f:validateButton title="${%Validate Settings}"
-            method="validate" with="url,credentialsId,groupVisibility,roleVisibility,useHTTPAuth,alternativeUrl,timeout,readTimeout,threadExecutorNumber" />
+            method="validate" with="url,credentialsId,groupVisibility,roleVisibility,useHTTPAuth,alternativeUrl,timeout,readTimeout,threadExecutorNumber,projectsListTimeout" />
   </f:entry>
   <f:entry title="">
     <div align="right">
